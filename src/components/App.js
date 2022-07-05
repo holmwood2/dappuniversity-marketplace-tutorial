@@ -1,36 +1,41 @@
 import React, { Component } from 'react';
 import Navbar from './Navbar'
-import detectEthereumProvider from '@metamask/detect-provider';
 import Marketplace from '../abis/Marketplace.json'
 import logo from '../logo.png';
 import './App.css';
-
+import { ethers } from "ethers";
 
 class App extends Component {
 
-	async componentWillMount() {
-    const provider = await detectEthereumProvider();
-    if (provider) {
-      this.loadBlockchainData(provider)
-    } else {
-      window.alert('Ethereum provider not found - please install metamask')
-    }
-	}
-  async loadBlockchainData(provider) {
-    const accounts = await provider.request({ method: 'eth_accounts' })
-    console.log(accounts)
-    this.setState({account: accounts[0]})
-    // const networkId = await web3.eth.net.getId()
-    const networkId = await provider.request({ method: 'net_version' })
-    const networkData = Marketplace.networks[networkId]
-    if (networkData) {
-      console.log("marketplace address %s", networkData.address)
-    } else {
-      window.alert('Marketplace contract not deployed')
-    }
+  async loadBlockchainData() {
+  // Load provider and account
+    this.provider = new ethers.providers.Web3Provider(window.ethereum)
+    this.signer = this.provider.getSigner()
+
+    const account = await this.signer.getAddress()
+    console.log(account)
+    this.setState({account})
+    const rpcProvider = new ethers.providers.JsonRpcProvider(
+      'HTTP://127.0.0.1:7545');
+
+    // The network ID is not guaranteed to be the same as ChainID, and ethers
+    // only provides the latter.
+    const networkId = await rpcProvider.send('net_version')
+    this.marketplace = new ethers.Contract(
+      Marketplace.networks[networkId].address,
+      Marketplace.abi,
+      this.signer)
+    console.log((await this.marketplace.productCount()).toString())
   }
+  
+	async componentWillMount() {
+    await this.loadBlockchainData()
+	}
+
   constructor(props) {
     super(props)
+    this.provider = null
+    this.signer = null
     this.state = {
       account: '',
       productCount: 0,
