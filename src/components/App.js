@@ -13,8 +13,8 @@ class App extends Component {
     this.signer = this.provider.getSigner()
 
     const account = await this.signer.getAddress()
-    console.log(account)
     this.setState({account})
+    // Would be good to figure out a way to utilize the provider connection.
     const rpcProvider = new ethers.providers.JsonRpcProvider(
       'HTTP://127.0.0.1:7545');
 
